@@ -92,6 +92,8 @@ def get_db_connection(db_path: Path = None) -> sqlite3.Connection:
     db_path.parent.mkdir(parents=True, exist_ok=True)
 
     conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=5000")
     conn.execute("""
         CREATE TABLE IF NOT EXISTS seen_orders (
             order_id INTEGER PRIMARY KEY,
