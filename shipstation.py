@@ -20,7 +20,7 @@ SHIPSTATION_API_URL = "https://ssapi.shipstation.com"
 DEFAULT_DB_PATH = Path.home() / ".shipstation" / "orders.db"
 
 
-def send_slack_message(token: str, channel: str, order: dict, store_map: dict = None) -> bool:
+def send_slack_message(token: str, channel: str, order: dict, store_map: dict = None, test: bool = False) -> bool:
     """Send an order notification to Slack using the API."""
     order_number = order.get("orderNumber", "N/A")
     store_id = order.get("advancedOptions", {}).get("storeId")
@@ -41,11 +41,13 @@ def send_slack_message(token: str, channel: str, order: dict, store_map: dict = 
 
     total = order.get("orderTotal", 0)
     items = order.get("items", [])
-    items_lines = "\n".join(
-        f"{item.get('quantity', 1)}x {item.get('name', 'Item')}"
+    items_list = "\n\n".join(
+        f"{item.get('quantity', 1)}x {item.get('name', 'Item')}\nSKU: {item.get('sku', '')}"
         for item in items
     )
+    items_lines = f"```{items_list}```"
 
+    order_icon = "⚠️ [TEST]" if test else "📦"
     payload = {
         "channel": channel,
         "unfurl_links": False,
@@ -55,7 +57,7 @@ def send_slack_message(token: str, channel: str, order: dict, store_map: dict = 
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": f"📦 *#{order_number}* · {store_name} · ${total:.2f}\n\n"
+                    "text": f"{order_icon} *#{order_number}* · {store_name} · ${total:.2f}\n\n"
                             f"{customer_name}\n"
                             f"{location}\n\n"
                             f"{items_lines}"
@@ -320,6 +322,11 @@ Examples:
         action="store_true",
         help="Send each order to Slack (requires SLACK_BOT_TOKEN and SLACK_CHANNEL env vars)"
     )
+    parser.add_argument(
+        "--test",
+        action="store_true",
+        help="Mark Slack messages as test (use with --slack)"
+    )
 
     args = parser.parse_args()
 
@@ -360,7 +367,14 @@ Examples:
         if not orders:
             print(f"Order {args.order} not found.", file=sys.stderr)
             sys.exit(1)
-        print(json.dumps(orders[0], indent=2))
+        order = orders[0]
+        print(json.dumps(order, indent=2))
+        if args.slack:
+            store_map = fetch_stores(api_key, api_secret)
+            if send_slack_message(slack_token, slack_channel, order, store_map, args.test):
+                print("Sent order to Slack")
+            else:
+                print("Failed to send order to Slack", file=sys.stderr)
         return
 
     status = None if args.status == "all" else args.status
@@ -456,7 +470,7 @@ Examples:
         if args.verbose:
             print()
         if args.slack:
-            if send_slack_message(slack_token, slack_channel, order, store_map):
+            if send_slack_message(slack_token, slack_channel, order, store_map, args.test):
                 slack_count += 1
 
     if args.slack:

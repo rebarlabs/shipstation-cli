@@ -46,6 +46,12 @@ Command line tool to fetch orders from ShipStation and optionally send notificat
 # Fetch a specific order by number
 ./shipstation.py --order 12345
 
+# Fetch a specific order and send to Slack
+./shipstation.py --order 12345 --slack
+
+# Send test notification to Slack
+./shipstation.py --order 12345 --slack --test
+
 # Output as JSON
 ./shipstation.py --stores "My Store" --json
 
@@ -64,6 +70,7 @@ Command line tool to fetch orders from ShipStation and optionally send notificat
 | `--order` | Fetch a specific order by order number |
 | `--list-stores` | List all available stores |
 | `--slack` | Send each order to Slack |
+| `--test` | Mark Slack messages as test |
 | `-v, --verbose` | Show detailed order information |
 | `-j, --json` | Output raw JSON response |
 | `--debug` | Show debug info for filtering |
