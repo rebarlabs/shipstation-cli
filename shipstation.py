@@ -41,13 +41,13 @@ def send_slack_message(token: str, channel: str, order: dict, store_map: dict = 
 
     total = order.get("orderTotal", 0)
     items = order.get("items", [])
-    items_list = "\n\n".join(
-        f"{item.get('quantity', 1)}x {item.get('name', 'Item')}\nSKU: {item.get('sku', '')}"
-        for item in items
-    )
-    items_lines = f"```{items_list}```"
 
     order_icon = "⚠️ [TEST]" if test else "📦"
+    items_text = "\n\n".join(
+        f">*{item.get('quantity', 1)}x {item.get('name', 'Item')}*\n>_SKU: {item.get('sku', '')}_"
+        for item in items
+    )
+
     payload = {
         "channel": channel,
         "unfurl_links": False,
@@ -59,12 +59,15 @@ def send_slack_message(token: str, channel: str, order: dict, store_map: dict = 
                     "type": "mrkdwn",
                     "text": f"{order_icon} *#{order_number}* · {store_name} · ${total:.2f}\n\n"
                             f"{customer_name}\n"
-                            f"{location}\n\n"
-                            f"{items_lines}"
+                            f"{location}"
                 }
             },
             {
-                "type": "divider"
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": items_text
+                }
             }
         ]
     }
